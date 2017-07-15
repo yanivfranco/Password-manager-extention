@@ -1,0 +1,22 @@
+{
+  "name": "passwordmanager",
+  "version": "1.0.0",
+  "description": "password maanger ",
+  "main": "popup.js",
+  "dependencies": {
+    "body-parser": "^1.17.2",
+    "expres": "^0.0.5",
+    "express": "^4.15.3",
+    "mongodb": "^2.2.26"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "no git"
+  }
+}
