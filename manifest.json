@@ -4,7 +4,7 @@
   "name": "Password Manager Project",
   "description": "This extension manages your passwords securely and privately",
   "version": "1.0",
-   "permissions": ["proxy", "storage", "notifications", "tabs", "cookies", "webRequest", "webRequestBlocking", "http://*/*", "https://*/*", "identity"],
+   "permissions": ["proxy", "storage", "notifications", "tabs", "cookies","<all_urls>", "webRequest", "webRequestBlocking", "http://*/*", "https://*/*", "identity"],
 
 
   "browser_action": {

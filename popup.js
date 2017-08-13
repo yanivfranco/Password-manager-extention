@@ -54,48 +54,85 @@ $("#disconnect").click(function(){
 
 
 
-
-
-
 function connect(){
-	var username = document.getElementById("username").value;
-	var password = document.getElementById("password").value;
-
-	var hPass0 = sjcl.codec.base64.fromBits(sjcl.hash.sha256.hash(password+'0'));
-	var key1 = sjcl.hash.sha256.hash(password+'1');
-	var key2 = sjcl.hash.sha256.hash(password+'2');
-
-	/*
-		sending the hashed passwords to the server
-	 */
-	var xhr = new XMLHttpRequest();
-	xhr.open('POST', "http://127.0.0.1:8081/", true);
-	xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-	var req = 'type=login&user='+username+'&hPass0='+hPass0;
-	xhr.send(req);
-
-	xhr.onreadystatechange = processRequest;
-
-	function processRequest(e) {
-		if (xhr.readyState == 4 && xhr.status == 200) {
-			var response = xhr.responseText;
-			if (response == "noUser"){
-				document.getElementById("message").innerHTML = "Username was not found";
+	chrome.cookies.getAll({"url":"http://www.passmanager.com"},callback);
+	function callback(cookies){
+		var login_attempts = -1, expired_time = -1, is_locked = "";
+		console.log((cookies));
+		cookies.forEach(function(cookie){
+			if(cookie.name == "login_attempts"){
+				login_attempts = cookie.value;
+				expired_time = cookie.expirationDate;
 			}
-
-			if (response == "noPass"){
-				document.getElementById("message").innerHTML = "Password is incorrect";
+			if(cookie.name == "is_locked"){
+				is_locked = cookie.expirationDate;
 			}
-			if (response == "success"){
-				document.getElementById("message").innerHTML = (("Login succesful, you will be redirected in 3 second").bold()).fontcolor("green");
-				port.postMessage({type: "login", username: username, key1: key1, key2: key2});
-				port.postMessage({type: "checkTag"});
-				setTimeout(loginToConnected, 3000);
-				$("#connectMessage").html("You are now connected with user: "+username);
-			}	         		        
+		})
+		console.log("is locked = "+is_locked);
+		console.log("attempts = "+login_attempts);
+		console.log("expired_time = "+expired_time);
+		if(is_locked != ""){
+			var time_left = is_locked - (((new Date()).getTime())/1000);
+			document.getElementById("message").innerHTML = "You are locked after 3 unsuccessful login attempts. You can try again in "+time_left+" seconds";
+			return;
 		}
-	}
+		var username = document.getElementById("username").value;
+		var password = document.getElementById("password").value;
 
+		var hPass0 = sjcl.codec.base64.fromBits(sjcl.hash.sha256.hash(password+'0'));
+		var key1 = sjcl.hash.sha256.hash(password+'1');
+		var key2 = sjcl.hash.sha256.hash(password+'2');
+
+		/*
+			sending the hashed passwords to the server
+		 */
+		var xhr = new XMLHttpRequest();
+		xhr.open('POST', "http://127.0.0.1:8081/", true);
+		xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+		var req = 'type=login&user='+username+'&hPass0='+hPass0;
+		xhr.send(req);
+
+		xhr.onreadystatechange = processRequest;
+
+		function processRequest(e) {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				var response = xhr.responseText;
+				if (response == "noUser"){
+					document.getElementById("message").innerHTML = "Username was not found";
+				}
+
+				if (response == "noPass"){
+					if(login_attempts != -1){ //if the user tried to login already
+						login_attempts++;
+						if(login_attempts == "3"){// if he tried 3 times
+							setCookie("is_locked","true",60);
+							chrome.cookies.remove({"url":"http://www.passmanager.com", "name":"login_attempts"});
+							document.getElementById("message").innerHTML = "Password is incorrect. You entered wrong password 3 times. Now locked for 1 minute.";
+						}
+						else{//less than 3 attempts
+							setCookie("login_attempts",""+login_attempts,((expired_time-(((new Date()).getTime())/1000))));
+							document.getElementById("message").innerHTML = "Password is incorrect. You entered wrong password "+login_attempts+"/3 times.";
+						}						
+					}
+					else{//if this is the first login
+						login_attempts = "1";
+						setCookie("login_attempts",""+login_attempts,180);
+						document.getElementById("message").innerHTML = "Password is incorrect. You entered wrong password "+login_attempts+"/3 times.";
+					}
+
+				}
+				if (response == "success"){
+					document.getElementById("message").innerHTML = (("Login succesful, you will be redirected in 3 second").bold()).fontcolor("green");
+					port.postMessage({type: "login", username: username, key1: key1, key2: key2});
+					port.postMessage({type: "checkTag"});
+					setTimeout(loginToConnected, 3000);
+					chrome.cookies.remove({"url":"http://www.passmanager.com", "name":"login_attempts"});
+					$("#connectMessage").html("You are now connected with user: "+username);
+				}	         		        
+			}
+		}
+
+	}
 }
 
 
@@ -196,5 +233,11 @@ function connectedToLogin(){
 }
 
 
-
-
+function setCookie(cname, cvalue, secs) {
+	chrome.cookies.set({
+    "name": cname,
+    "value": cvalue,
+    "url": "http://www.passmanager.com",
+    "expirationDate": ((((new Date()).getTime())/1000)+(secs))
+	});
+}

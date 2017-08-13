@@ -1,4 +1,10 @@
 ## Password-Manager Chrome-Extension ##
+A simple password manager extention for google chrome browser.
+This repositry contains server and client.
+The passwords are encrypted and stored on the server using various cryptography encryptions.
+The client is implemented using javascript and server implemnted using node js.
+Database using MongoDb.
+
 For using the extension follow the steps:
 
 1. For running the server you should have node.js on your computer.
